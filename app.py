@@ -9,7 +9,11 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 @app.route('/')
 def index():
-    return render_template('form.html')
+    try:
+        return render_template('form.html')
+    except Exception as e:
+        return f"Error: {e}"
+
 
 @app.route('/submit', methods=['POST'])
 def submit_form():
