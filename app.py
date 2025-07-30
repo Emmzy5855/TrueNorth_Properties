@@ -1,39 +1,30 @@
 from flask import Flask, request, render_template, redirect, url_for
 import os
 import json
-import sqlite3
+import mysql.connector
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 UPLOAD_FOLDER = 'uploads'
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER  # this is already set to 'uploads' above
-DATABASE = 'applications.db'
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+# MySQL connection settings (use your actual Railway credentials here)
+DB_CONFIG = {
+    'host': 'maglev.proxy.rlwy.net',
+    'port': 55641,
+    'user': 'root',
+    'password': 'YOUR_RAILWAY_PASSWORD',
+    'database': 'railway'
+}
 
 # Ensure upload folder exists
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# --- Database Setup ---
+# --- Database Connection ---
 def get_db_connection():
-    conn = sqlite3.connect(DATABASE)
-    conn.row_factory = sqlite3.Row
-    return conn
+    return mysql.connector.connect(**DB_CONFIG)
 
-def init_db():
-    conn = get_db_connection()
-    conn.execute('''
-        CREATE TABLE IF NOT EXISTS applications (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            property_address TEXT NOT NULL,
-            form_data TEXT NOT NULL,
-            uploaded_files TEXT
-        )
-    ''')
-    conn.commit()
-    conn.close()
-
-# Initialize database
-#init_db()
-
+# --- Routes ---
 @app.route('/')
 def index():
     return render_template('form.html')
@@ -58,13 +49,21 @@ def submit_form():
                 file.save(file_path)
                 uploaded_files.append(file_path)
 
-    # Save data in database
+    # Save data in MySQL database
     conn = get_db_connection()
-    conn.execute('''
+    cursor = conn.cursor()
+
+    cursor.execute('''
         INSERT INTO applications (property_address, form_data, uploaded_files)
-        VALUES (?, ?, ?)
-    ''', (property_address, json.dumps(form_data), json.dumps(uploaded_files)))
+        VALUES (%s, %s, %s)
+    ''', (
+        property_address,
+        json.dumps(form_data),
+        json.dumps(uploaded_files)
+    ))
+
     conn.commit()
+    cursor.close()
     conn.close()
 
     return render_template('success.html', property_address=property_address)
@@ -72,14 +71,20 @@ def submit_form():
 @app.route('/submissions')
 def submissions():
     conn = get_db_connection()
-    apps = conn.execute('SELECT id, property_address FROM applications').fetchall()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute('SELECT id, property_address FROM applications')
+    apps = cursor.fetchall()
+    cursor.close()
     conn.close()
     return render_template('submissions.html', applications=apps)
 
 @app.route('/submission/<int:app_id>')
 def submission_detail(app_id):
     conn = get_db_connection()
-    app_data = conn.execute('SELECT * FROM applications WHERE id = ?', (app_id,)).fetchone()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute('SELECT * FROM applications WHERE id = %s', (app_id,))
+    app_data = cursor.fetchone()
+    cursor.close()
     conn.close()
 
     if not app_data:
