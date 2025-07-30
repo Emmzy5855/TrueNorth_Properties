@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template, redirect, url_for
+from flask import Flask, request, render_template, redirect, url_for, send_from_directory
 import os
 import json
 import mysql.connector
@@ -94,6 +94,13 @@ def submission_detail(app_id):
     uploaded_files = json.loads(app_data['uploaded_files']) if app_data['uploaded_files'] else []
 
     return render_template('submission_detail.html', form_data=form_data, files=uploaded_files)
+
+
+@app.route('/uploads/<path:filename>')
+def uploaded_file(filename):
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+
+
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')
