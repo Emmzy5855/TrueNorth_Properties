@@ -32,7 +32,7 @@ def init_db():
     conn.close()
 
 # Initialize database
-init_db()
+#init_db()
 
 @app.route('/')
 def index():
