@@ -6,7 +6,7 @@ from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 UPLOAD_FOLDER = 'uploads'
-app.config['UPLOAD_FOLDER'] = 'mysql://root:WWWohlVZHMSYgmmikzqgTWGXMUEpttYH@maglev.proxy.rlwy.net/railway'
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER  # this is already set to 'uploads' above
 DATABASE = 'applications.db'
 
 # Ensure upload folder exists
