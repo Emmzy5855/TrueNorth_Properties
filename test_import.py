@@ -1,3 +1,3 @@
-from hello import db
+from app import db
 
 print("Imported db successfully.")
