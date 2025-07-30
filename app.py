@@ -13,7 +13,7 @@ DB_CONFIG = {
     'host': 'maglev.proxy.rlwy.net',
     'port': 55641,
     'user': 'root',
-    'password': 'YOUR_RAILWAY_PASSWORD',
+    'password': 'WWWohlVZHMSYgmmikzqgTWGXMUEpttYH',
     'database': 'railway'
 }
 
