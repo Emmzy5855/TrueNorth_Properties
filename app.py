@@ -2,14 +2,16 @@ from flask import Flask, request, render_template, redirect, send_from_directory
 from werkzeug.utils import secure_filename
 import os, json, mysql.connector
 from dotenv import load_dotenv
+from flask_mail import Mail, Message
 
-load_dotenv()  # Load from .env
+load_dotenv()
 
 app = Flask(__name__)
 UPLOAD_FOLDER = 'uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
+# DB Config
 DB_CONFIG = {
     'host': 'maglev.proxy.rlwy.net',
     'port': 55641,
@@ -17,6 +19,16 @@ DB_CONFIG = {
     'password': 'WWWohlVZHMSYgmmikzqgTWGXMUEpttYH',
     'database': 'railway'
 }
+
+# Email Config from .env
+app.config['MAIL_SERVER'] = os.getenv("MAIL_SERVER")
+app.config['MAIL_PORT'] = int(os.getenv("MAIL_PORT"))
+app.config['MAIL_USE_TLS'] = os.getenv("MAIL_USE_TLS") == "True"
+app.config['MAIL_USERNAME'] = os.getenv("MAIL_USERNAME")
+app.config['MAIL_PASSWORD'] = os.getenv("MAIL_PASSWORD")
+app.config['MAIL_DEFAULT_SENDER'] = os.getenv("MAIL_DEFAULT_SENDER")
+
+mail = Mail(app)
 
 def get_db_connection():
     return mysql.connector.connect(**DB_CONFIG)
@@ -41,6 +53,7 @@ def submit_form():
                 file.save(file_path)
                 uploaded_files.append(file_path)
 
+    # Save to MySQL
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute('''
@@ -50,6 +63,24 @@ def submit_form():
     conn.commit()
     cursor.close()
     conn.close()
+
+    # Send Email Notification
+    try:
+        receiver_email = os.getenv("MAIL_RECEIVER")
+        msg = Message(f"New Application for {property_address}", recipients=[receiver_email])
+        msg.body = f"""
+        A new application has been submitted.
+
+        Property Address: {property_address}
+        Applicant Info:
+        {json.dumps(form_data, indent=2)}
+
+        Uploaded Files:
+        {json.dumps(uploaded_files, indent=2)}
+        """
+        mail.send(msg)
+    except Exception as e:
+        print(f"Email sending failed: {e}")
 
     return render_template('success.html', property_address=property_address)
 
